@@ -108,14 +108,6 @@ class SegmentCounter:
             yield self.file_pattern.format(chunk), out_file
 
 
-def traverse_segments(anchor, prefix=''):
-    for element in anchor:
-        _, pure_tag = element.tag.split('}', 1)
-        print('{}{}'.format(prefix, pure_tag))
-        if pure_tag == 'trans-unit':
-            continue
-        traverse_segments(element, prefix + '  ')
-
 def process_file(args):
     for key, url in NAMESPACES_OUT:
         ET.register_namespace(key, url)
@@ -154,9 +146,6 @@ def process_file(args):
 
     with open(args.file + '.attachments.xlf', 'wb') as fd:
         fd.write(ET.tostring(attachments_xml, encoding="utf-8"))
-
-    # print(root.findall('./x:file', NAMESPACES))
-    # traverse_segments(root)
 
 if __name__ == '__main__':
     args = parse_cmdline()
