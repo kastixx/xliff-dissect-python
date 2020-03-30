@@ -142,10 +142,10 @@ def process_file(args):
                     file_xml = copy.copy(root)
                     file_xml[:] = [ file_part ]
                     with open(file_name, 'wb') as fd:
-                        fd.write(ET.tostring(file_xml, encoding="utf-8"))
+                        fd.write(ET.tostring(file_xml, encoding="utf-8", xml_declaration=True))
 
     with open(args.file + '.attachments.xlf', 'wb') as fd:
-        fd.write(ET.tostring(attachments_xml, encoding="utf-8"))
+        fd.write(ET.tostring(attachments_xml, encoding="utf-8", xml_declaration=True))
 
 if __name__ == '__main__':
     args = parse_cmdline()
