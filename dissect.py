@@ -30,6 +30,7 @@ NS_XLIFF_PREFIX = '{' + NS_XLIFF + '}'
 
 TAG_GROUP = NS_XLIFF_PREFIX + 'group'
 TAG_TRANS_UNIT = NS_XLIFF_PREFIX + 'trans-unit'
+TAG_BODY = NS_XLIFF_PREFIX + 'body'
 
 def parse_cmdline():
     parser = argparse.ArgumentParser(description="Dissect XLIFF file")
@@ -116,10 +117,8 @@ def process_file(args):
 
     root = parsed_xml.getroot()
     attachments_xml = copy.copy(root)
-    attachments_xml[:] = []
 
-    file_index = 0
-    for file in root.iterfind('./x:file', NAMESPACES):
+    for file_index, file in enumerate(root.iterfind('./x:file', NAMESPACES)):
         binary = file.find('./x:header/x:reference/x:internal-file', NAMESPACES)
 
         if binary is not None:
@@ -131,18 +130,31 @@ def process_file(args):
             with open(file.get('original'), "wb") as fd:
                 fd.write(content)
 
-            attachments_xml.append(copy.copy(file))
+        body = file.find('./x:body', NAMESPACES)
 
-        else:
-            body = file.find('./x:body', NAMESPACES)
-            if body:
-                counter = SegmentCounter(max_segments=args.segments,
-                        file_pattern='{}.file{}.part{{}}.xlf'.format(args.file, file_index))
-                for file_name, file_part in counter.process_file(file):
-                    file_xml = copy.copy(root)
-                    file_xml[:] = [ file_part ]
-                    with open(file_name, 'wb') as fd:
-                        fd.write(ET.tostring(file_xml, encoding="utf-8", xml_declaration=True))
+        if body:
+            counter = SegmentCounter(max_segments=args.segments,
+                    file_pattern='{}.file{}.part{{}}.xlf'.format(args.file, file_index))
+            for file_name, file_part in counter.process_file(file):
+                file_xml = copy.copy(root)
+                file_xml[:] = [ file_part ]
+                with open(file_name, 'wb') as fd:
+                    fd.write(ET.tostring(file_xml, encoding="utf-8", xml_declaration=True))
+
+            out_file = copy.copy(file)
+
+            for idx, elem in enumerate(file):
+                if elem.tag == TAG_BODY:
+                    out_body = copy.copy(body)
+                    out_body[:] = []
+                    if out_body.tail and out_body.tail.isspace():
+                        out_body.tail= ""
+                    if out_body.text and out_body.text.isspace():
+                        out_body.text= ""
+                    out_file[idx] = out_body
+                    break
+
+            attachments_xml[file_index] = out_file
 
     with open(args.file + '.attachments.xlf', 'wb') as fd:
         fd.write(ET.tostring(attachments_xml, encoding="utf-8", xml_declaration=True))
