@@ -98,7 +98,7 @@ class SegmentCounter:
             else:
                 raise Exception("Unexpected tag: {}".format(elem.tag))
 
-        if output_group:
+        if output_group or not group:
             yield chunk, output_group
 
     def process_file(self, file):
