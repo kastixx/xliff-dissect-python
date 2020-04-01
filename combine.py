@@ -62,14 +62,12 @@ def merge_files(filenames):
     out_xml = ET.parse(first_file)
     root = out_xml.getroot()
     body = root.find('./x:file/x:body', NAMESPACES)
-    print("Rc {}".format(first_file))
 
     for filename in others:
         add_xml = ET.parse(filename)
         add_root = add_xml.getroot()
         add_body = add_root.find('./x:file/x:body', NAMESPACES)
         add_chunk(body, add_body)
-        print("Rca {}".format(filename))
 
     return root
 
@@ -115,8 +113,6 @@ def process_file(args):
 
     with open(args.file + '.combined.xlf', 'wb') as fd:
         fd.write(ET.tostring(root, encoding="utf-8", xml_declaration=True))
-
-    print("W {}".format(args.file + ".combined.xlf"))
 
 if __name__ == '__main__':
     args = parse_cmdline()
