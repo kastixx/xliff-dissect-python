@@ -51,6 +51,9 @@ def add_chunk(base, add):
         add_chunk(base[-1], add[0])
         add = add[1:]
 
+    else:
+        add = add[:]
+
     base.extend(add)
 
 def merge_files(filenames):
@@ -63,7 +66,7 @@ def merge_files(filenames):
 
     for filename in others:
         add_xml = ET.parse(filename)
-        add_root = out_xml.getroot()
+        add_root = add_xml.getroot()
         add_body = add_root.find('./x:file/x:body', NAMESPACES)
         add_chunk(body, add_body)
         print("Rca {}".format(filename))
