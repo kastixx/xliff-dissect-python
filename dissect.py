@@ -166,63 +166,60 @@ def dissect_file(args):
     with open(args.file + '.attachments.xlf', 'wb') as fd:
         fd.write(ET.tostring(attachments_xml, encoding="utf-8", xml_declaration=True))
 
-def add_chunk(base, add):
-    if not add:
+def append_chunk(destination, source):
+    if not source:
         return
 
-    first_elem = add[0]
-    if (first_elem.tag == TAG_GROUP and
-            base[-1].tag == TAG_GROUP and
-            base[-1].attrib['id'] == first_elem.attrib['id']):
-        add_chunk(base[-1], add[0])
-        add = add[1:]
+    if (source[0].tag == TAG_GROUP and
+            destination[-1].tag == TAG_GROUP and
+            destination[-1].attrib['id'] == source[0].attrib['id']):
+        append_chunk(destination[-1], source[0])
+        source = source[1:]
 
     else:
-        add = add[:]
+        source = source[:]
 
-    base.extend(add)
+    destination.extend(source)
 
 def merge_files(filenames):
     first_file, *others = filenames
 
-    out_xml = ET.parse(first_file)
-    root = out_xml.getroot()
-    body = root.find('./x:file/x:body', NAMESPACES)
+    merged_xml_root = ET.parse(first_file).getroot()
+    merged_body = merged_xml_root.find('./x:file/x:body', NAMESPACES)
 
     for filename in others:
-        add_xml = ET.parse(filename)
-        add_root = add_xml.getroot()
-        add_body = add_root.find('./x:file/x:body', NAMESPACES)
-        add_chunk(body, add_body)
+        chunk_xml_root = ET.parse(filename).getroot()
+        chunk_body = chunk_xml_root.find('./x:file/x:body', NAMESPACES)
+        append_chunk(merged_body, chunk_body)
 
-    return root
+    return merged_xml_root
 
 def combine_file(args):
     for key, url in NAMESPACES_OUT:
         ET.register_namespace(key, url)
 
-    re_part = re.compile('^{}\\.file([0-9]+)\\.part([0-9]+)\\.xlf$'.format(re.escape(args.file)))
+    re_chunk = re.compile('^{}\\.file([0-9]+)\\.part([0-9]+)\\.xlf$'.format(re.escape(args.file)))
 
-    part_files = {}
+    chunk_files = {}
     for filename in os.listdir('.'):
-        match = re_part.match(filename)
+        match = re_chunk.match(filename)
         if not match:
             continue
 
         file_index = int(match.group(1))
-        part_index = int(match.group(2))
+        chunk_index = int(match.group(2))
 
-        part_files.setdefault(file_index, []).append((part_index, filename))
+        chunk_files.setdefault(file_index, []).append((chunk_index, filename))
 
-        for part in part_files.values():
-            part.sort(key=lambda p: p[0])
+    for part in chunk_files.values():
+        part.sort(key=lambda p: p[0])
 
     attachments_xml = ET.parse(args.file + '.attachments.xlf')
 
     root = attachments_xml.getroot()
 
     for file_index, file in enumerate(root.iterfind('./x:file', NAMESPACES)):
-        parts = part_files.get(file_index, None)
+        parts = chunk_files.get(file_index, None)
         if not parts:
             continue
 
@@ -230,8 +227,8 @@ def combine_file(args):
         if body is None:
             continue
 
-        merged_xml = merge_files(fn for _, fn in parts)
-        merged_body = merged_xml.find('./x:file/x:body', NAMESPACES)
+        merged_xml_root = merge_files(fn for _, fn in parts)
+        merged_body = merged_xml_root.find('./x:file/x:body', NAMESPACES)
         if not merged_body:
             continue
 
