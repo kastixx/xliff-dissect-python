@@ -101,7 +101,7 @@ class SegmentCounter:
         if output_group or not group:
             yield chunk, output_group
 
-    def process_file(self, file):
+    def split_file(self, file):
         body = file.find('./x:body', NAMESPACES)
         for chunk, part in self.process_group(body):
             out_file = copy.copy(file)
@@ -109,7 +109,7 @@ class SegmentCounter:
             yield self.file_pattern.format(chunk), out_file
 
 
-def process_file(args):
+def dissect_file(args):
     for key, url in NAMESPACES_OUT:
         ET.register_namespace(key, url)
 
@@ -135,7 +135,7 @@ def process_file(args):
         if body:
             counter = SegmentCounter(max_segments=args.segments,
                     file_pattern='{}.file{}.part{{}}.xlf'.format(args.file, file_index))
-            for file_name, file_part in counter.process_file(file):
+            for file_name, file_part in counter.split_file(file):
                 file_xml = copy.copy(root)
                 file_xml[:] = [ file_part ]
                 with open(file_name, 'wb') as fd:
@@ -161,4 +161,4 @@ def process_file(args):
 
 if __name__ == '__main__':
     args = parse_cmdline()
-    process_file(args)
+    dissect_file(args)
